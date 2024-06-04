@@ -180,7 +180,7 @@ func (self *callController) RecvEvent(event sippy_types.CCEvent, ua sippy_types.
             self.state = CCStateWaitRoute
             if ! self.global_config.Auth_enable {
                 self.username = self.remote_ip.String()
-                self.rDone(nil)
+                self.rDone_nolock(nil)
                 return
             }
             var auth *sippy_header.SipAuthorizationBody
@@ -237,6 +237,12 @@ func (self *callController) RecvEvent(event sippy_types.CCEvent, ua sippy_types.
 }
 
 func (self *callController) rDone(results *RadiusResult) {
+    self.lock.Lock()
+    defer self.lock.Unlock()
+    self.rDone_nolock(results)
+}
+
+func (self *callController) rDone_nolock(results *RadiusResult) {
     // Check that we got necessary result from Radius
     if results == nil || results.Rcode != 0 {
         if self.uaA.GetState() == sippy_types.UAS_STATE_TRYING {
